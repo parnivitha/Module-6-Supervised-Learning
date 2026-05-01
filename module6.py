@@ -5,15 +5,18 @@ from sklearn.tree import DecisionTreeRegressor
 from sklearn.metrics import mean_squared_error, r2_score
 import matplotlib.pyplot as plt
 
-df = pd.read_csv("agrofood_co2_emission.csv")
+df_preprocess = pd.read_csv("agrofood_co2_emission.csv")
+df_preprocess.columns = df_preprocess.columns.str.strip().str.lower()
 
-print("Rows loaded (before cleaning):", len(df))
+print("Rows loaded (before cleaning):", len(df_preprocess))
 
-df = df.dropna()
+df_clean = df_preprocess.dropna()
 
-print("Rows after dropping missing data:", len(df))
+print("Rows after dropping missing data:", len(df_clean))
 
-df = pd.get_dummies(df, columns=["Area"], drop_first=True)
+df_original = df_clean.copy()
+
+df = pd.get_dummies(df_clean, columns=["area"], drop_first=True)
 
 y = df["total_emission"]
 
@@ -77,13 +80,45 @@ final_reg.fit(X_train, y_train)
 
 pred_test = final_reg.predict(X_test)
 
-results = df_test.copy()
+results = df_original.loc[df_test.index].copy()
+
 results["actual"] = y_test
 results["predicted"] = pred_test
 results["absolute_error"] = abs(results["actual"] - results["predicted"])
 
 wrong_samples = results.sort_values(by="absolute_error", ascending=False).head(5)
 
-print("\nTop 5 largest errors:")
-print(wrong_samples[["Year", "actual", "predicted", "absolute_error"]])
+cols_to_show = [
+   "area",
+    "year",
+    "savanna fires",
+    "forest fires",
+    "crop residues",
+    "rice cultivation",
+    "drained organic soils (co2)",
+    "pesticides manufacturing",
+    "forestland",
+    "food transport",
+    "food retail",
+    "food household consumption",
+    "on-farm electricity use",
+    "food packaging",
+    "agrifood systems waste disposal",
+    "food processing",
+    "fertilizers manufacturing",
+    "ippu",
+    "manure management",
+    "rural population",
+    "urban population",
+]
 
+selected = wrong_samples[cols_to_show]
+
+pd.set_option("display.max_columns", None)
+pd.set_option("display.max_rows", None)
+
+print("\nTop 5 largest errenous countries and associated features:")
+print(selected.T)
+
+print("\nTop 5 largest errors:")
+print(wrong_samples[cols_to_show[:2] + ["actual", "predicted", "absolute_error"]])
